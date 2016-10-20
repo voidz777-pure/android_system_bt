@@ -27,7 +27,6 @@
 #include "osi/include/alarm.h"
 #include "osi/include/allocator.h"
 #include "btcore/include/bdaddr.h"
-#include "btif_common.h"
 #include "btif_api.h"
 #include "btif_config.h"
 #include "btif_config_transcode.h"
@@ -45,7 +44,7 @@ static const char *LEGACY_CONFIG_FILE_PATH = "/data/misc/bluedroid/bt_config.xml
 static const period_ms_t CONFIG_SETTLE_PERIOD_MS = 3000;
 
 static void timer_config_save_cb(void *data);
-static void btif_config_write(UINT16 event, char *p_param);
+static void btif_config_write(void);
 static void btif_config_remove_unpaired(config_t *config);
 static void btif_config_remove_restricted(config_t *config);
 
@@ -365,7 +364,7 @@ void btif_config_flush(void) {
   assert(alarm_timer != NULL);
 
   alarm_cancel(alarm_timer);
-  btif_config_write(0, NULL);
+  btif_config_write();
 }
 
 int btif_config_clear(void){
@@ -389,13 +388,10 @@ int btif_config_clear(void){
 }
 
 static void timer_config_save_cb(UNUSED_ATTR void *data) {
-  // Moving file I/O to btif context instead of timer callback because
-  // it usually takes a lot of time to be completed, introducing
-  // delays during A2DP playback causing blips or choppiness.
-  btif_transfer_context(btif_config_write, 0, NULL, 0, NULL);
+  btif_config_write();
 }
 
-static void btif_config_write(UNUSED_ATTR UINT16 event, UNUSED_ATTR char *p_param) {
+static void btif_config_write(void) {
   assert(config != NULL);
   assert(alarm_timer != NULL);
 
